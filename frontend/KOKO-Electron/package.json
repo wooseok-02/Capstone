@@ -1,0 +1,42 @@
+{
+  "name": "koko-desktop-pet",
+  "productName": "코코 KOKO",
+  "version": "0.2.0",
+  "private": true,
+  "description": "KOKO Electron desktop pet with real OAuth loopback PKCE integration",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "com.koko.desktop-pet.oauth",
+    "productName": "코코 KOKO",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "lib/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/koko-icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "코코 KOKO"
+    }
+  }
+}

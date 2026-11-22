@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; frame-src 'none'">
+  <title>코코 (KOKO) — 소셜 로그인</title>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <div class="window-shell">
+    <header class="titlebar">
+      <div class="brand"><img src="../assets/koko-icon.png" alt=""><span>코코 <small>(KOKO)</small></span></div>
+      <div class="window-actions">
+        <button type="button" class="window-action" id="minimize" aria-label="창 최소화">─</button>
+        <button type="button" class="window-action close" id="close" aria-label="창 닫기">×</button>
+      </div>
+    </header>
+    <main class="auth-content">
+      <section id="login-view" class="auth-inner">
+        <div class="auth-intro">
+          <div class="badge" id="mode-tag">간편 가입</div>
+          <h1 id="headline">회원가입 방식을 선택하세요</h1>
+          <p id="subtitle">처음 연결하는 계정은 로그인할 때 자동으로 가입돼요.</p>
+        </div>
+        <section class="api-setup" aria-label="백엔드 API 서버 설정">
+          <div class="api-label-line">
+            <strong>백엔드 서버</strong>
+            <span id="server-state">주소 설정 필요</span>
+          </div>
+          <form id="api-config-form" class="config-row">
+            <input id="api-base" name="api-base" type="url" placeholder="https://api.example.com" aria-label="백엔드 서버 기본 주소" autocomplete="off" spellcheck="false" required>
+            <button type="submit" class="save-config">저장</button>
+          </form>
+          <p class="setup-help">팀 백엔드 주소를 한 번 입력해 주세요. 로컬 테스트는 http://127.0.0.1:포트 도 허용돼요.</p>
+        </section>
+        <div class="provider-list" aria-label="소셜 로그인 제공자">
+          <button class="provider naver" data-provider="naver" type="button"><span class="provider-icon naver-mark" aria-hidden="true">N</span><span id="naver-text">네이버로 간편가입</span></button>
+          <button class="provider google" data-provider="google" type="button"><span class="provider-icon google-mark" aria-hidden="true">G</span><span id="google-text">Google 계정으로 가입</span></button>
+          <button class="provider kakao" data-provider="kakao" type="button"><span class="provider-icon kakao-mark" aria-hidden="true"></span><span>카카오 로그인</span></button>
+        </div>
+        <section class="auth-feedback" aria-label="로그인 진행 상태">
+          <p id="auth-status" role="status" aria-live="polite">백엔드 서버 주소를 설정하면 로그인을 시작할 수 있어요.</p>
+          <button type="button" id="cancel-login" class="cancel-login" hidden>로그인 취소</button>
+        </section>
+      </section>
+      <section id="profile-view" class="profile-view" hidden>
+        <div class="profile-icon"><img src="../assets/koko-icon.png" alt="코코"></div>
+        <div class="badge">로그인 완료</div>
+        <h1>코코에 오신 걸 환영해요!</h1>
+        <p class="profile-lead">소셜 계정이 안전하게 연결되었어요.</p>
+        <div class="account-card">
+          <div class="account-line"><span>닉네임</span><strong id="profile-nickname">—</strong></div>
+          <div class="account-line"><span>로그인 제공자</span><strong id="profile-provider">—</strong></div>
+          <div class="account-line"><span>회원 ID</span><strong id="profile-id">—</strong></div>
+          <div class="account-line"><span>가입 날짜</span><strong id="profile-created">—</strong></div>
+        </div>
+        <div class="account-buttons">
+          <button type="button" id="reload-profile">회원 정보 다시 조회</button>
+          <button type="button" id="logout" class="logout-button">로그아웃</button>
+        </div>
+        <p class="profile-footnote">Access Token은 메모리에, Refresh Token은 OS 암호화 저장소를 이용해 보관합니다.</p>
+      </section>
+    </main>
+    <footer class="auth-footer"><span>코코 KOKO · 소셜 로그인 API 연동</span><span class="separator">·</span><span>약관 동의는 이번 통합 테스트에서 생략</span></footer>
+  </div>
+  <script src="auth.js"></script>
+</body>
+</html>
