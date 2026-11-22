@@ -4,3 +4,4 @@
 /venvs
 vens
 /.env
+__pycache__/
