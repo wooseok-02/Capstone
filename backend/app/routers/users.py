@@ -2,24 +2,15 @@ from typing import Annotated
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials
 
+from ..core.auth import bearer, read_database_id
 from ..core.security import ACCESS_AUDIENCE, NO_STORE, SettingsDependency, decode_token
 from ..database import connect
 from ..schemas.user import UserProfile
 
 
 router = APIRouter(tags=["회원 정보"])
-bearer = HTTPBearer(auto_error=False, description="로그인 응답에서 받은 `access_token` 값만 입력하세요.")
-
-
-def read_database_id(claim: object) -> int:
-    if not isinstance(claim, str) or not (1 <= len(claim) <= 19 and claim.isascii() and claim.isdecimal()):
-        raise jwt.InvalidTokenError()
-    value = int(claim)
-    if not 1 <= value <= 2**63 - 1:
-        raise jwt.InvalidTokenError()
-    return value
 
 
 @router.get(

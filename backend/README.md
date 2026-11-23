@@ -10,6 +10,7 @@ Google, Naver, Kakao 계정으로 가입하거나 로그인할 수 있습니다.
 | `POST /auth/refresh` | Refresh Token을 보내면 새 Access Token과 Refresh Token을 반환합니다. |
 | `POST /auth/logout` | Refresh Token을 보낸 현재 세션을 종료하고 `204`를 반환합니다. |
 | `GET /me` | Access Token과 로그인 세션을 확인하고 회원 ID, 소셜 로그인 제공자, 닉네임, 가입 시각을 반환합니다. |
+| `/api/v1/devices`, `/api/v1/folders` | 기기와 폴더를 등록하고 제외 폴더를 관리합니다. 자세한 내용은 [API 명세서](docs/API.md)를 참고하세요. |
 
 ## 로컬 실행
 
@@ -34,7 +35,7 @@ Kakao Developers에서 앱을 등록하고 **카카오 로그인** 사용 설정
 
 새 로컬 DB에서는 `001_initial.sql` 하나를 실행합니다. 배포 전에는 DB 구조 변경을 이 파일에 모읍니다. `psql` 대신 PostgreSQL 관리 도구에서 같은 파일을 실행해도 됩니다.
 
-새 DB에는 회원과 세션을 저장하는 `users`, `refresh_token`, `used_refresh_tokens`와 Electron 일회용 코드를 관리하는 `desktop_login_codes`가 생성됩니다.
+새 DB에는 회원과 세션을 저장하는 `users`, `refresh_token`, `used_refresh_tokens`, Electron 일회용 코드를 관리하는 `desktop_login_codes`, 기기와 폴더를 관리하는 `devices`, `folders`, `folder_locations`, `folder_exclusions`가 생성됩니다. 기존 DB에도 같은 파일을 다시 실행하면 없는 테이블만 추가됩니다.
 
 ```powershell
 psql -h 127.0.0.1 -U pet -d knowledge_pet -v ON_ERROR_STOP=1 -f backend/sql/001_initial.sql
