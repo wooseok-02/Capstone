@@ -3,4 +3,5 @@
 !.env.example
 .venv/
 __pycache__/
-CLAUDE.md
+docs/CLAUDE.md
+docs/todo.md
