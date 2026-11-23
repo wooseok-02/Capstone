@@ -1,14 +1,8 @@
 import hashlib
 import re
 import secrets
-from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
-class LoginSession:
-    id: int
-    user_id: int
-    refresh_token: str
+from ..models.session import LoginSession
 
 
 def hash_refresh_token(token: str) -> str | None:

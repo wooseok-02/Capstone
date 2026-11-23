@@ -1,97 +1,21 @@
 import secrets
-from datetime import datetime, timedelta, timezone
 from typing import Annotated
-from urllib.parse import urlencode
 
 import jwt
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Cookie, HTTPException, Path, Query
 from fastapi.responses import JSONResponse, RedirectResponse, Response
-from pydantic import BaseModel, Field, SecretStr
 
-from .db import Settings, connect, get_settings
-from .desktop_auth import consume_desktop_code, issue_desktop_code
-from .sessions import LoginSession, create_session, hash_refresh_token, logout_session, rotate_refresh_token
-from .social_providers import authorization_url, get_provider, verify_provider_code
+from ..core.security import FLOW_LIFETIME, NO_STORE, OAUTH_AUDIENCE, SettingsDependency, decode_token, encode_token
+from ..database import connect
+from ..schemas.auth import DesktopExchangeRequest, RefreshRequest, SessionTokenResponse
+from ..services.auth_service import desktop_redirect, login_social_user, session_response
+from ..services.desktop_auth_service import consume_desktop_code, issue_desktop_code
+from ..services.session_service import hash_refresh_token, logout_session, rotate_refresh_token
+from ..services.social_provider_service import authorization_url, get_provider, verify_provider_code
 
 
 router = APIRouter(prefix="/auth", tags=["회원가입 및 로그인"])
-ISSUER = "knowledge-pet"
-ACCESS_AUDIENCE = "knowledge-pet-api"
-OAUTH_AUDIENCE = "knowledge-pet-social-oauth"
-ACCESS_LIFETIME = 15 * 60
-FLOW_LIFETIME = 10 * 60
-NO_STORE = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
-SettingsDependency = Annotated[Settings, Depends(get_settings)]
 SocialProvider = Annotated[str, Path(description="소셜 로그인 제공자입니다. `google`, `naver`, `kakao`를 사용할 수 있습니다.")]
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: SecretStr = Field(description="로그인 또는 마지막 갱신에서 받은 갱신 토큰입니다.")
-
-
-class DesktopExchangeRequest(BaseModel):
-    code: SecretStr = Field(description="브라우저에서 앱으로 전달된 일회용 코드입니다.")
-    code_verifier: SecretStr = Field(description="앱이 로그인 시작 때 생성해 보관했던 원래 검증값입니다.")
-
-
-class SessionTokenResponse(BaseModel):
-    access_token: str = Field(description="내 정보 조회 같은 보호된 API를 호출할 때 사용하는 접근 토큰입니다.")
-    refresh_token: str = Field(description="로그인을 유지하거나 현재 세션을 종료할 때 사용하는 갱신 토큰입니다.")
-    token_type: str = Field(description="접근 토큰을 전달하는 방식입니다. 값은 `bearer`입니다.")
-    expires_in: int = Field(description="접근 토큰의 유효기간입니다. 단위는 초입니다.")
-
-
-def encode_token(settings: Settings, audience: str, lifetime: int, claims: dict) -> str:
-    now = datetime.now(timezone.utc)
-    return jwt.encode(
-        {**claims, "iss": ISSUER, "aud": audience, "iat": now, "exp": now + timedelta(seconds=lifetime)},
-        settings.jwt_secret,
-        algorithm="HS256",
-    )
-
-
-def decode_token(settings: Settings, audience: str, token: str) -> dict:
-    return jwt.decode(
-        token,
-        settings.jwt_secret,
-        algorithms=["HS256"],
-        issuer=ISSUER,
-        audience=audience,
-        options={"require": ["iss", "aud", "iat", "exp"]},
-    )
-
-
-def session_response(settings: Settings, session: LoginSession) -> JSONResponse:
-    access_token = encode_token(settings, ACCESS_AUDIENCE, ACCESS_LIFETIME, {
-        "sub": str(session.user_id), "sid": str(session.id), "jti": secrets.token_urlsafe(16),
-    })
-    tokens = SessionTokenResponse(
-        access_token=access_token, refresh_token=session.refresh_token,
-        token_type="bearer", expires_in=ACCESS_LIFETIME,
-    )
-    return JSONResponse(tokens.model_dump(), headers=NO_STORE)
-
-
-def login_social_user(db, provider: str, provider_user_id: str, nickname: str | None) -> LoginSession:
-    user = db.execute("""
-        INSERT INTO users (provider, provider_user_id, nickname)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (provider, provider_user_id) DO NOTHING
-        RETURNING id
-        """, (provider, provider_user_id, nickname)).fetchone()
-    if user is None:
-        # This statement also sees a user inserted by a concurrent login.
-        user = db.execute("""
-            SELECT id FROM users WHERE provider = %s AND provider_user_id = %s
-            FOR KEY SHARE
-            """, (provider, provider_user_id)).fetchone()
-        if user is None:
-            raise HTTPException(409, "로그인 중 계정 상태가 변경됐습니다. 로그인을 다시 시작해 주세요.", headers=NO_STORE)
-    return create_session(db, user["id"])
-
-
-def desktop_redirect(port: int, **params: str) -> RedirectResponse:
-    return RedirectResponse(f"http://127.0.0.1:{port}/oauth/callback?{urlencode(params)}", status_code=302, headers=NO_STORE)
 
 
 @router.get(

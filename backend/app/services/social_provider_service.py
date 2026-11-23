@@ -1,12 +1,12 @@
-from dataclasses import dataclass
 from urllib.parse import urlencode, urlsplit
 
 import httpx
 import jwt
 from fastapi import HTTPException
 
-from .db import Settings
-from .desktop_auth import s256_challenge
+from ..config import Settings
+from ..models.social_provider import ProviderConfig
+from .desktop_auth_service import s256_challenge
 
 
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -20,26 +20,6 @@ KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
 KAKAO_PROFILE_URL = "https://kapi.kakao.com/v2/user/me"
 
 AUTHORIZATION_URLS = {"google": GOOGLE_AUTHORIZE_URL, "naver": NAVER_AUTHORIZE_URL, "kakao": KAKAO_AUTHORIZE_URL}
-
-
-@dataclass(frozen=True)
-class ProviderConfig:
-    name: str
-    client_id: str
-    client_secret: str
-    redirect_uri: str
-
-    @property
-    def callback_path(self) -> str:
-        return f"/auth/{self.name}/callback"
-
-    @property
-    def secure_cookie(self) -> bool:
-        return urlsplit(self.redirect_uri).scheme == "https"
-
-    @property
-    def uses_pkce(self) -> bool:
-        return self.name in {"google", "kakao"}
 
 
 def get_provider(name: str, settings: Settings) -> ProviderConfig:

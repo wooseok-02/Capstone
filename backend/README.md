@@ -38,7 +38,7 @@ Kakao Developers에서 앱을 등록하고 **카카오 로그인** 사용 설정
 
 ```powershell
 psql -h 127.0.0.1 -U pet -d knowledge_pet -v ON_ERROR_STOP=1 -f backend/sql/001_initial.sql
-.\backend\.venv\Scripts\python.exe -m uvicorn backend.main:app --port 8000 --no-access-log
+.\backend\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --port 8000 --no-access-log
 ```
 
 `psql` 예시는 `pet` 사용자와 `knowledge_pet` DB가 이미 만들어져 있다고 가정합니다. 요청 로그를 끄는 옵션은 인증 콜백 URL에 들어오는 코드를 로그에 남기지 않기 위해 사용합니다. 브라우저 주소에는 `localhost`를 사용해야 로그인 시작과 콜백에서 같은 쿠키를 사용할 수 있습니다.

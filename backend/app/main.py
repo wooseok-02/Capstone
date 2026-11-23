@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from . import auth, users
+from .routers import auth, users
 
 
 app = FastAPI(

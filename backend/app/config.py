@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-import psycopg
 from dotenv import load_dotenv
-from psycopg.rows import dict_row
 
 
 @dataclass(frozen=True)
@@ -25,7 +23,7 @@ class Settings:
 
 @lru_cache
 def get_settings() -> Settings:
-    load_dotenv(Path(__file__).with_name(".env"))
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
     names = (
         "DATABASE_URL",
         "JWT_SECRET",
@@ -46,7 +44,3 @@ def get_settings() -> Settings:
     if len(values["jwt_secret"].encode()) < 32:
         raise RuntimeError("JWT_SECRET must be at least 32 bytes")
     return Settings(**values)
-
-
-def connect(settings: Settings):
-    return psycopg.connect(settings.database_url, row_factory=dict_row, connect_timeout=5)
