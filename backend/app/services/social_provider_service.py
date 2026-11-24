@@ -121,6 +121,7 @@ def verify_google_code(provider: ProviderConfig, code: str, flow: dict) -> tuple
             id_token, signing_key.key, algorithms=["RS256"],
             issuer=("https://accounts.google.com", "accounts.google.com"),
             audience=provider.client_id,
+            leeway=5,
             options={"require": ["iss", "aud", "sub", "exp", "iat", "nonce"]},
         )
         if profile["nonce"] != flow["nonce"]:
