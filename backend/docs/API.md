@@ -27,7 +27,7 @@
 | `502` | R2 또는 AI 서버 응답 실패 |
 | `503` | R2 또는 AI 서버 설정이 비어 있음 |
 
-다른 계정의 기기·폴더는 존재 여부가 드러나지 않도록 `403` 대신 `404`로 응답합니다.
+다른 계정의 기기·폴더·문서는 존재 여부가 드러나지 않도록 `403` 대신 `404`로 응답합니다. 검색은 내 문서만 대상으로 하므로 다른 계정의 문서는 결과에 나오지 않습니다.
 
 ```json
 { "detail": "폴더를 찾을 수 없습니다." }
@@ -235,7 +235,7 @@ Electron은 파일 경로가 제외 경로와 같거나 `제외 경로/`로 시�
 
 `DELETE /api/v1/folders/{folder_id}`
 
-모든 기기와의 연결을 해제하고 `204`를 반환합니다. 기기별 폴더 경로(`folder_locations`)와 문서 경로(`document_locations`)는 삭제하고, 폴더 기록과 제외 규칙, 문서·버전·청크는 `disconnected` 상태로 보존합니다. 해제한 폴더는 조회·검색되지 않으며, 같은 경로를 다시 등록하면 새 `folder_id`가 발급됩니다.
+모든 기기와의 연결을 해제하고 `204`를 반환합니다. 기기별 폴더 경로(`folder_locations`)와 문서 경로(`document_locations`)는 삭제하고, 폴더는 `disconnected` 상태로 바꿉니다. 제외 규칙, 문서·버전·청크, R2 원본은 삭제하지 않고 보존합니다. 해제한 폴더는 조회·검색되지 않으며, 같은 경로를 다시 등록하면 새 `folder_id`가 발급됩니다.
 
 ### 폴더 내 문서 목록
 
@@ -380,7 +380,15 @@ R2 업로드·다운로드 URL은 응답으로만 주고 DB나 로그에 남기�
 }
 ```
 
-`error_code` 예: `EXTRACTION_FAILED`, `DOWNLOAD_FAILED`, `EMBEDDING_API_ERROR`, `EMPTY_TEXT`(AI가 보낸 값), `AI_UNREACHABLE`, `AI_HTTP_500`, `AI_INVALID_CHUNKS`, `STORE_FAILED`(백엔드).
+`error_code` 값은 다음과 같습니다.
+
+| 코드 | 원인 |
+| --- | --- |
+| `AI_PROCESSING_FAILED` | AI가 `status: "failed"`만 보냄. 현재 AI 서버의 실패는 모두 이 값 (예: `.hwp` 미지원) |
+| `EXTRACTION_FAILED`, `DOWNLOAD_FAILED`, `EMBEDDING_API_ERROR`, `EMPTY_TEXT` | AI가 `error_code`를 보낸 경우 그대로 저장 (노션 설계의 후보 값) |
+| `AI_UNREACHABLE`, `AI_HTTP_<상태>` | AI 서버에 연결하지 못함, AI 서버가 200이 아닌 응답 |
+| `AI_INVALID_RESPONSE`, `AI_INVALID_CHUNKS`, `AI_INVALID_EMBEDDING`, `AI_VERSION_MISMATCH` | AI 응답 형식 검증 실패 |
+| `STORE_FAILED`, `PROCESSING_ERROR` | 백엔드에서 청크 저장 또는 처리 중 오류 |
 
 ### 문서 검색
 
@@ -417,6 +425,7 @@ R2 업로드·다운로드 URL은 응답으로만 주고 DB나 로그에 남기�
 - 검색어를 AI 서버에서 벡터로 바꾼 뒤, **문서와 같은 임베딩 모델·차원**의 청크에서 코사인 거리 순으로 찾습니다. `score`는 `1 - 코사인 거리`입니다.
 - 검색 대상: 내 폴더(연결 해제 제외), 문서별 `ready`인 최신 버전, 제외 경로 밖의 문서. 제외 경로를 새로 추가하면 바로 검색에서 빠집니다.
 - `snippet`은 청크 앞 300자입니다. AI 서버 미설정 `503`, 검색어 변환 실패 `502`.
+- **현재 상태:** AI 서버에 검색어 임베딩 엔드포인트가 아직 없어 `AI_EMBED_URL`이 비어 있으므로 `503`을 반환합니다. 백엔드 쪽 검색 로직은 구현·테스트되어 있습니다.
 
 ### 기기별 문서 경로 조회
 
@@ -489,9 +498,18 @@ AI 서버는 백엔드만 호출하며 `Authorization: Bearer <AI_INTERNAL_TOKEN
 }
 ```
 
-AI는 같은 HTTP 응답으로 `document_version_id`, `status`(`success`/`failed`), `embedding_model`, `embedding_dim`, `chunks[{chunk_index, chunk_text, embedding}]` 또는 `error_code`를 돌려줍니다. 백엔드는 차원·숫자·순서 번호 중복을 검증하고 한 트랜잭션으로 청크를 모두 저장한 뒤에만 `ready`로 바꿉니다.
+AI는 같은 HTTP 응답으로 `document_version_id`, `status`(`success`/`failed`), `embedding_model`, `embedding_dim`, `chunks[{chunk_index, chunk_text, embedding}]` 또는 `error_code`를 돌려줍니다. 백엔드는 차원·숫자·순서 번호 중복을 검증하고 한 트랜잭션으로 청크를 모두 저장한 뒤에만 `ready`로 바꿉니다. PDF 추출 결과에 섞인 NUL 문자(`\x00`)는 PostgreSQL에 저장할 수 없어 백엔드가 지우고 저장합니다.
 
-**검색어 임베딩** `POST {AI_EMBED_URL}` (형식 가정, 미확정)
+현재 AI 서버 확인 결과 (2026-11-24, `D:\Test_Docs` 160개):
+
+| 항목 | 값 |
+| --- | --- |
+| 모델 | `sentence-transformers/paraphrase-MiniLM-L3-v2`, 384차원 |
+| 처리 성공 형식 | `.md`, `.pdf`, `.docx`, `.pptx`, `.txt` |
+| 처리 실패 형식 | `.hwp` (지원하지 않음, `AI_PROCESSING_FAILED`) |
+| 처리 시간 | 문서 1개 약 2~3초(대형 PDF 6~16초). CPU·GPU 서버 차이 거의 없음 |
+
+**검색어 임베딩** `POST {AI_EMBED_URL}` (형식 가정, 미확정. 현재 AI 서버에 없음)
 
 ```json
 { "text": "검색어" }
@@ -507,7 +525,8 @@ AI는 같은 HTTP 응답으로 `document_version_id`, `status`(`success`/`failed
 - PK 이름 규칙(`id` vs `테이블_id`)이 정해지면 컬럼 이름이 바뀔 수 있습니다.
 - 임베딩 후 새로 제외한 폴더는 검색에서 바로 빠지지만, 이미 올라간 R2 원본·청크는 지우지 않습니다. 삭제 정책은 팀 결정이 필요합니다.
 - 경로는 Unicode NFC로 맞춰 비교합니다. Windows 대소문자 구분 정책은 미정이며 현재는 대소문자를 구분합니다.
-- 백엔드 ↔ AI 동기/비동기 방식, AI 엔드포인트 경로, 검색어 임베딩 형식은 AI 담당과 확정해야 합니다. 현재는 업로드 완료 응답 후 같은 서버에서 AI를 호출하므로, 처리 중 서버가 꺼지면 버전이 `processing`에 남습니다(작업 큐 도입 시 해결).
+- 백엔드 ↔ AI 동기/비동기 방식, 검색어 임베딩 형식, AI 서버 인증(내부 토큰)은 AI 담당과 확정해야 합니다. 문서 처리 엔드포인트는 `/upload`로 확인했습니다. 현재는 업로드 완료 응답 후 같은 서버에서 AI를 호출하므로, 처리 중 서버가 꺼지면 버전이 `processing`에 남습니다(작업 큐 도입 시 해결).
 - URL 유효 시간(업로드·다운로드 1800초, AI용 600초)과 업로드 크기 제한(100MB)은 임시 기본값이며 환경 변수로 바꿀 수 있습니다.
-- 멱등성 기준(최신 버전과 해시·크기 비교), 파일 이동·이름 변경·삭제 시 문서 처리, 지원 파일 형식은 팀 확정 전입니다.
-- 임베딩 차원이 정해지면 `chunks.embedding`을 `vector(N)`으로 고정하고 검색 인덱스(HNSW 등)를 추가합니다. 지금은 인덱스 없이 전체 비교합니다.
+- 멱등성 기준(최신 버전과 해시·크기 비교), 파일 이동·이름 변경·삭제 시 문서 처리는 팀 확정 전입니다.
+- 지원 파일 형식은 미정입니다. 현재 백엔드는 형식을 제한하지 않아 `.hwp`도 등록·업로드되고 분석 단계에서 실패합니다. 지원 목록이 정해지면 등록 단계에서 거부합니다.
+- 임베딩 차원이 정해지면 `chunks.embedding`을 `vector(N)`으로 고정하고 검색 인덱스(HNSW 등)를 추가합니다. 지금은 인덱스 없이 전체 비교합니다. AI 모델을 바꾸면 기존 청크는 새 모델로 다시 분석해야 검색됩니다.
