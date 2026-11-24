@@ -59,8 +59,10 @@ def list_folders(db, user_id: int) -> list[dict]:
 
 def read_exclusions(db, folder_id: UUID) -> list[str]:
     rows = db.execute("""
-        SELECT relative_path FROM folder_exclusions WHERE folder_id = %s ORDER BY relative_path
+        SELECT relative_path FROM folder_exclusions WHERE folder_id = %s
+        ORDER BY relative_path COLLATE "C"
         """, (folder_id,)).fetchall()
+    # DB 로캘 정렬은 `.` 같은 기호를 무시하므로 환경과 관계없이 같은 순서가 나오도록 문자 코드 순으로 정렬한다.
     return [row["relative_path"] for row in rows]
 
 
