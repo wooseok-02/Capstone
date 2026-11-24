@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from ..core.auth import CurrentUserId
 from ..core.security import NO_STORE, SettingsDependency
 from ..database import connect
+from ..schemas.document import FolderDocumentsResponse
 from ..schemas.folder import (
     ExclusionsResponse,
     ExclusionsSavedResponse,
@@ -16,7 +17,7 @@ from ..schemas.folder import (
     RescanRequest,
     RescanResponse,
 )
-from ..services import folder_service
+from ..services import document_service, folder_service
 
 
 def set_no_store(response: Response) -> None:
@@ -57,6 +58,20 @@ def list_folders(user_id: CurrentUserId, settings: SettingsDependency):
 def get_folder(folder_id: UUID, user_id: CurrentUserId, settings: SettingsDependency):
     with connect(settings) as db:
         return folder_service.get_folder_detail(db, user_id, folder_id)
+
+
+@router.get(
+    "/{folder_id}/documents", response_model=FolderDocumentsResponse,
+    summary="폴더 내 문서 목록",
+    description="폴더에 등록된 문서와 최신 버전 상태를 경로 순으로 반환합니다.",
+    response_description="문서 목록입니다.",
+)
+def list_documents(folder_id: UUID, user_id: CurrentUserId, settings: SettingsDependency,
+                   limit: int = Query(100, ge=1, le=500, description="가져올 문서 수입니다."),
+                   offset: int = Query(0, ge=0, description="건너뛸 문서 수입니다.")):
+    with connect(settings) as db:
+        documents = document_service.list_folder_documents(db, user_id, folder_id, limit, offset)
+    return {"folder_id": folder_id, "documents": documents}
 
 
 @router.put(

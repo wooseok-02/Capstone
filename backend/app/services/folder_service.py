@@ -106,4 +106,9 @@ def disconnect_folder(db, user_id: int, folder_id: UUID) -> None:
     # 연결만 해제한다. 폴더 행과 제외 규칙은 보존하고 기기별 로컬 경로는 지운다.
     get_owned_folder(db, user_id, folder_id, lock=True)
     db.execute("DELETE FROM folder_locations WHERE folder_id = %s", (folder_id,))
+    # 기기별 문서 경로도 전체 로컬 경로라서 함께 지운다. 문서·버전·청크는 보존한다.
+    db.execute("""
+        DELETE FROM document_locations
+        WHERE document_id IN (SELECT document_id FROM documents WHERE folder_id = %s)
+        """, (folder_id,))
     db.execute("UPDATE folders SET status = 'disconnected' WHERE folder_id = %s", (folder_id,))

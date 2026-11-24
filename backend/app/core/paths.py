@@ -53,23 +53,45 @@ def normalize_local_path(value: str) -> str:
     return posixpath.normpath(path)
 
 
-def validate_relative_path(value: str) -> str:
-    path = value.replace("\\", "/")
+def validate_relative_path(value: str, label: str = "제외 경로") -> str:
+    # 제외 판단은 문자열 비교라서 Windows(NFC)·macOS(NFD) 한글이 같게 비교되도록 NFC로 맞춘다.
+    path = unicodedata.normalize("NFC", value).replace("\\", "/")
     if not path.strip():
-        raise ValueError("제외 경로는 비어 있을 수 없습니다.")
+        raise ValueError(f"{label}는 비어 있을 수 없습니다.")
     if len(path) > MAX_RELATIVE_PATH_LENGTH:
-        raise ValueError(f"제외 경로는 {MAX_RELATIVE_PATH_LENGTH}자 이하여야 합니다.")
+        raise ValueError(f"{label}는 {MAX_RELATIVE_PATH_LENGTH}자 이하여야 합니다.")
     if path.startswith("/") or re.match(r"^[A-Za-z]:", path):
-        raise ValueError("제외 경로는 폴더 루트 기준 상대 경로여야 합니다.")
+        raise ValueError(f"{label}는 폴더 루트 기준 상대 경로여야 합니다.")
     if has_unsafe_characters(path) or WINDOWS_FORBIDDEN.intersection(path):
-        raise ValueError("제외 경로에 사용할 수 없는 문자가 있습니다.")
+        raise ValueError(f"{label}에 사용할 수 없는 문자가 있습니다.")
     for segment in path.split("/"):
         if not segment:
-            raise ValueError("제외 경로에 빈 폴더 이름이 있습니다.")
+            raise ValueError(f"{label}에 빈 이름이 있습니다.")
         if segment in {".", ".."}:
-            raise ValueError("제외 경로에는 `.`, `..`를 사용할 수 없습니다.")
+            raise ValueError(f"{label}에는 `.`, `..`를 사용할 수 없습니다.")
         if segment != segment.strip() or segment.endswith("."):
-            raise ValueError("폴더 이름은 공백이나 점으로 끝날 수 없습니다.")
+            raise ValueError("파일·폴더 이름은 공백이나 점으로 끝날 수 없습니다.")
         if segment.split(".")[0].upper() in WINDOWS_RESERVED:
             raise ValueError("Windows 예약 이름은 사용할 수 없습니다.")
     return path
+
+
+def validate_document_path(value: str) -> str:
+    return validate_relative_path(value, "문서 경로")
+
+
+def is_excluded(relative_path: str, excluded_paths: list[str]) -> bool:
+    """설계 규칙: 경로가 제외 경로와 같거나 "제외 경로/"로 시작하면 제외한다."""
+    path = unicodedata.normalize("NFC", relative_path)
+    for excluded in excluded_paths:
+        rule = unicodedata.normalize("NFC", excluded)
+        if path == rule or path.startswith(rule + "/"):
+            return True
+    return False
+
+
+def join_local_path(root: str, relative_path: str) -> str:
+    """폴더 루트 경로와 문서 상대 경로로 해당 기기의 예상 파일 경로를 만든다."""
+    if is_windows_path(root):
+        return ntpath.join(root, relative_path.replace("/", "\\"))
+    return posixpath.join(root, relative_path)

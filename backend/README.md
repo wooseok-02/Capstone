@@ -42,18 +42,18 @@ backend/
 │   ├── main.py          # FastAPI 앱, 라우터 등록
 │   ├── config.py        # 환경 변수 로드
 │   ├── database.py      # PostgreSQL 연결
-│   ├── core/            # 토큰, 공통 인증 의존성, 경로 검증
+│   ├── core/            # 토큰, 인증 의존성, 경로 검증, R2 서명(storage), AI 호출(ai_client)
 │   ├── models/          # 내부 데이터 구조
-│   ├── routers/         # API 엔드포인트 (auth, users, devices, folders)
+│   ├── routers/         # API 엔드포인트 (auth, users, devices, folders, documents)
 │   ├── schemas/         # 요청·응답 모델
 │   └── services/        # 비즈니스 로직과 SQL
 ├── docs/
-│   └── API.md           # 기기·폴더 API 명세
+│   └── API.md           # 기기·폴더·문서·검색 API 명세
 ├── sql/
 │   └── 001_initial.sql  # 초기 DB 스키마
 ├── .env.example         # 환경 변수 예시
 ├── Dockerfile           # API 서버 이미지
-├── docker-compose.yml   # 로컬용 API + PostgreSQL 구성
+├── docker-compose.yml   # 로컬용 API + PostgreSQL + Adminer 구성
 └── requirements.txt
 ```
 
@@ -105,8 +105,8 @@ Docker를 쓰면 PostgreSQL 설치와 스키마 실행이 자동으로 처리됩
 | 서비스명 | Knowledge Pet (2026-2 캡스톤디자인) |
 | 클라이언트 | Electron 데스크톱 앱 |
 | 로컬 Base URL | `http://localhost:8000` |
-| 구현된 기능 | 소셜 로그인(Google · Naver · Kakao), Electron 로그인 연동, 토큰 갱신·로그아웃, 기기 등록, 폴더 등록·조회·연결 해제, 제외 폴더 설정, 재탐색 요청 |
-| 예정 기능 | 문서 업로드(R2 Presigned URL), AI 분석 연동, 의미 기반 검색, 원본 열기·다운로드 |
+| 구현된 기능 | 소셜 로그인(Google · Naver · Kakao), Electron 로그인 연동, 토큰 갱신·로그아웃, 기기 등록, 폴더 등록·조회·연결 해제, 제외 폴더 설정, 재탐색 요청, 문서 업로드(R2 Presigned URL), AI 분석 연동, 의미 기반 검색, 기기별 문서 경로, 다운로드 |
+| 연동 상태 | 원본 저장은 Cloudflare R2, 문서 분석은 Modal AI 서버(`/upload`)와 실제 연결 확인. 검색은 AI 서버에 검색어 임베딩 API가 추가되면 사용 가능 |
 
 ---
 
@@ -114,9 +114,9 @@ Docker를 쓰면 PostgreSQL 설치와 스키마 실행이 자동으로 처리됩
 
 | 영역 | 기술 |
 | --- | --- |
-| 백엔드 | FastAPI · Python 3.11+ · PyJWT · httpx |
-| DB | PostgreSQL (psycopg 3) · pgvector 예정 |
-| 원본 저장 | Cloudflare R2 비공개 버킷 |
+| 백엔드 | FastAPI · Python 3.11+ · PyJWT · httpx · boto3 |
+| DB | PostgreSQL (psycopg 3) · pgvector |
+| 원본 저장 | Cloudflare R2 비공개 버킷 (S3 호환 Presigned URL) |
 | 인증 | 소셜 OAuth · Access/Refresh Token · Electron 루프백 + PKCE 방식 코드 교환 |
 | 문서 처리 | LangChain · Unstructured · 외부 임베딩 API (AI 담당) |
 | 데스크톱 | Electron · React · TypeScript (프론트엔드 담당) |
@@ -150,6 +150,18 @@ Docker를 쓰면 PostgreSQL 설치와 스키마 실행이 자동으로 처리됩
 | `GET /api/v1/folders/{folder_id}/exclusions` | 저장된 제외 폴더를 조회합니다. |
 | `POST /api/v1/folders/{folder_id}/rescan` | 재탐색 요청 식별자를 발급합니다. |
 | `DELETE /api/v1/folders/{folder_id}` | 폴더와 기기의 연결을 해제합니다. |
+| `GET /api/v1/folders/{folder_id}/documents` | 폴더의 문서와 최신 버전 상태를 조회합니다. |
+
+### 문서·검색
+
+| API | 역할 |
+| --- | --- |
+| `POST /api/v1/documents` | 파일을 문서로 등록하고 R2 업로드 URL을 발급합니다. 같은 파일을 다시 보내면 기존 버전을 돌려줍니다. |
+| `POST /api/v1/documents/{document_id}/upload-complete` | R2 업로드를 확인하고 AI 분석을 시작합니다. |
+| `GET /api/v1/documents/{document_id}` | 문서와 버전별 상태(분석 진행 상황)를 조회합니다. |
+| `POST /api/v1/search` | 검색어와 의미가 가까운 청크를 찾습니다. |
+| `GET`·`PUT /api/v1/documents/{document_id}/locations/{device_id}` | 기기별 문서 경로를 조회·갱신합니다. |
+| `POST /api/v1/documents/{document_id}/download-url` | 원본을 받을 R2 다운로드 URL을 발급합니다. |
 
 ---
 
@@ -176,13 +188,36 @@ docker compose up --build
 | --- | --- | --- |
 | `api` | `http://localhost:8000` | FastAPI 서버 |
 | `db` | `127.0.0.1:5432` | PostgreSQL 17 (pgvector 포함) |
+| `adminer` | `http://localhost:8080` | 브라우저에서 DB를 보는 관리 도구 |
 
 compose 프로젝트 이름은 `knowledge-pet`으로 고정되어 있어, 컨테이너는 `knowledge-pet-api-1`, `knowledge-pet-db-1`로 만들어집니다. 다른 프로젝트의 `backend` 폴더와 이름이 겹치지 않습니다.
 
 - **DB 주소:** 컨테이너 안에서는 `DATABASE_URL`이 자동으로 `db` 컨테이너를 가리킵니다. `.env`의 `DATABASE_URL`은 바꾸지 않아도 됩니다.
-- **스키마:** `sql/001_initial.sql`은 DB 볼륨이 **처음 만들어질 때만** 자동 실행됩니다.
+- **스키마:** `sql/001_initial.sql`은 DB 볼륨이 **처음 만들어질 때만** 자동 실행됩니다. 이미 만든 DB에 새 테이블을 추가하려면 데이터를 지우지 않는 아래 명령을 한 번 실행합니다.
+
+  ```powershell
+  Get-Content sql/001_initial.sql -Raw -Encoding utf8 | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U pet -d knowledge_pet
+  ```
 - **포트 충돌:** PC에 이미 PostgreSQL이 `5432`에서 실행 중이면 `db` 컨테이너가 켜지지 않습니다. 기존 PostgreSQL을 끄고 다시 실행하세요.
 - **코드 변경:** 코드를 고친 뒤에는 `docker compose up --build`로 이미지를 다시 만들어야 반영됩니다.
+
+#### DB를 화면으로 보기
+
+`http://localhost:8080`을 열고 아래 값으로 로그인하면 테이블 목록과 데이터를 클릭해서 볼 수 있습니다. 왼쪽 메뉴에서 테이블 이름 옆의 **선택**을 누르면 행이 표시되고, **SQL 명령**에서 직접 쿼리를 실행할 수 있습니다.
+
+| 항목 | 값 |
+| --- | --- |
+| 데이터베이스 형식 | PostgreSQL |
+| 서버 | `db` |
+| 사용자이름 | `pet` (`POSTGRES_USER`) |
+| 비밀번호 | `local-dev-password` (`POSTGRES_PASSWORD`) |
+| 데이터베이스 | `knowledge_pet` (`POSTGRES_DB`) |
+
+괄호 안의 환경 변수를 `.env`에 지정했다면 그 값을 사용합니다. 서버 칸에는 `localhost`가 아니라 compose 서비스 이름인 `db`를 입력해야 합니다. Adminer에서 데이터를 수정하면 실제 DB가 바뀌므로 조회 용도로 쓰는 것을 권장합니다.
+
+DBeaver 같은 데스크톱 DB 도구를 쓴다면 호스트 `127.0.0.1`, 포트 `5432`에 같은 계정으로 접속하면 됩니다.
+
+#### 자주 쓰는 명령
 
 자주 쓰는 명령은 다음과 같습니다.
 
@@ -208,6 +243,23 @@ Copy-Item backend/.env.example backend/.env
 ```
 
 `backend/.env`의 `DATABASE_URL`을 로컬 PostgreSQL의 접속 주소로 바꾸고, 위 명령이 출력한 난수를 `JWT_SECRET`에 입력합니다. `.env`는 Git에서 제외됩니다. DB 준비는 아래 [DB 준비와 서버 실행](#db-준비와-서버-실행)을 따릅니다.
+
+### R2·AI 서버 설정
+
+문서 API를 쓰려면 `.env`에 아래 값을 채우고 서버를 다시 켭니다. 비어 있으면 문서 업로드·다운로드는 `503`, 검색은 `503`을 반환하고, AI 서버만 비어 있으면 업로드는 `uploaded` 상태에서 멈춥니다.
+
+| 변수 | 값 |
+| --- | --- |
+| `R2_ENDPOINT_URL` | `https://<계정ID>.r2.cloudflarestorage.com` (R2 Overview의 Account ID) |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | R2 → Manage R2 API Tokens에서 **Object Read & Write**, 사용할 버킷 하나로 범위를 정해 만든 키 |
+| `R2_BUCKET` | 버킷 이름. 버킷은 **비공개**로 둡니다. |
+| `AI_PROCESS_URL` | AI 서버 주소 뒤에 `/upload`를 붙인 문서 처리 주소 (예: `https://<AI 서버>.modal.run/upload`). 주소는 AI 담당에게 받습니다 |
+| `AI_EMBED_URL` | 검색어 임베딩 주소. AI 서버에 아직 없어 비워 두면 검색만 `503`입니다 |
+| `AI_INTERNAL_TOKEN` | 백엔드와 AI 서버가 함께 쓰는 내부 토큰 (`secrets.token_urlsafe(32)`로 생성). 비어 있으면 AI를 호출하지 않습니다. 현재 AI 서버는 토큰을 검사하지 않으므로 임의 값으로도 동작합니다 |
+
+업로드 후 `uploaded`에서 멈춘 문서는 AI 설정을 넣고 서버를 다시 켠 뒤 `upload-complete`를 다시 보내면 분석됩니다. Docker는 `.env`를 컨테이너를 만들 때 읽으므로 값을 바꾼 뒤 `docker compose up -d --force-recreate api`로 다시 만듭니다.
+
+URL 유효 시간과 업로드 크기 제한은 `.env.example`의 임시 기본값을 따릅니다. Electron 렌더러에서 `fetch`로 R2에 직접 PUT·GET한다면 버킷 Settings → CORS Policy에서 해당 메서드를 허용해야 합니다.
 
 ### 소셜 로그인 설정
 
@@ -247,8 +299,11 @@ Docker로 실행한다면 이 과정은 자동으로 처리되므로 건너뜁�
 | `devices` | 사용자가 앱을 설치한 기기 |
 | `folders`, `folder_locations` | 등록한 폴더와 기기별 폴더 위치 |
 | `folder_exclusions` | 폴더 루트 기준 제외 경로 |
+| `documents`, `document_versions` | 문서와 버전별 R2 위치(`object_key`)·처리 상태 |
+| `document_locations` | 기기별 문서 경로 |
+| `chunks` | 청크 텍스트와 임베딩 벡터 (pgvector) |
 
-기존 DB에도 같은 파일을 다시 실행하면 없는 테이블만 추가됩니다.
+기존 DB에도 같은 파일을 다시 실행하면 없는 테이블만 추가됩니다. `chunks`는 pgvector 확장이 필요하므로, Docker를 쓰지 않는다면 PostgreSQL에 pgvector를 먼저 설치합니다.
 
 ```powershell
 psql -h 127.0.0.1 -U pet -d knowledge_pet -v ON_ERROR_STOP=1 -f backend/sql/001_initial.sql
@@ -278,6 +333,7 @@ psql -h 127.0.0.1 -U pet -d knowledge_pet -v ON_ERROR_STOP=1 -f backend/sql/001_
 3. 기본 브라우저에서 `http://localhost:8000/auth/{provider}/start?desktop_port=<포트>&desktop_challenge=<해시>`를 엽니다. `{provider}`에는 `google`, `naver`, `kakao` 중 하나를 넣습니다. 소셜 인증이 끝나면 FastAPI가 브라우저를 `http://127.0.0.1:<포트>/oauth/callback?code=<일회용 코드>`로 보냅니다. 사용자가 동의를 취소하면 `error=access_denied`를 받고, 인증에 실패하면 `error=login_failed`를 받습니다.
 4. Electron의 백엔드 요청에서 `POST /auth/exchange`에 `{"code":"받은 코드","code_verifier":"보관한 원래 검증값"}`을 JSON으로 보냅니다. 백엔드는 코드에 저장해 둔 제공자와 소셜 계정 ID로 회원을 찾아 토큰 두 개를 발급합니다. 코드는 2분 동안 유효하며 한 번만 교환할 수 있습니다.
 5. 로그인한 뒤 앱 첫 실행이라면 `POST /api/v1/devices`로 기기 ID를 발급받아 보관합니다. 이후 폴더 등록과 재탐색 요청에 이 `device_id`를 사용합니다.
+6. 제외 규칙을 적용한 파일마다 `POST /api/v1/documents` → 응답의 `upload_url`로 PUT(`upload_headers` 그대로) → `upload-complete` 순으로 호출합니다. 자세한 흐름은 [API 명세서](docs/API.md#문서)에 있습니다.
 
 여기서 루프백은 사용자의 PC에서 브라우저와 Electron이 통신하는 주소입니다. 배포 환경에서는 Electron이 HTTPS 백엔드에 코드 교환을 요청합니다.
 
@@ -304,10 +360,11 @@ psql -h 127.0.0.1 -U pet -d knowledge_pet -v ON_ERROR_STOP=1 -f backend/sql/001_
 
 | 문서 | 설명 |
 | --- | --- |
-| [docs/API.md](docs/API.md) | 기기·폴더 API 명세 (요청, 응답, 오류, 경로 검증 규칙) |
+| [docs/API.md](docs/API.md) | 기기·폴더·문서·검색 API 명세 (요청, 응답, 오류, 상태 흐름, AI 연동 형식) |
 | [sql/001_initial.sql](sql/001_initial.sql) | 전체 DB 스키마 |
 | [.env.example](.env.example) | 필요한 환경 변수 목록 |
-| [docker-compose.yml](docker-compose.yml) | 로컬 Docker 구성 (API + PostgreSQL) |
+| [docker-compose.yml](docker-compose.yml) | 로컬 Docker 구성 (API + PostgreSQL + Adminer) |
+| `http://localhost:8080` | 서버 실행 중 DB를 화면으로 보는 Adminer |
 | `http://localhost:8000/docs` | 서버 실행 중 확인하는 Swagger 문서 |
 
 아키텍처·워크플로, 백엔드 ↔ AI 연동 설계는 팀 노션 문서에 있습니다.
