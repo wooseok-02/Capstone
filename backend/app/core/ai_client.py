@@ -103,7 +103,11 @@ def process_document(settings: Settings, document_version_id: str, file_name: st
         index, text = chunk.get("chunk_index"), chunk.get("chunk_text")
         if isinstance(index, bool) or not isinstance(index, int) or index < 0 or index in seen:
             raise AIError("AI_INVALID_CHUNKS")
-        if not isinstance(text, str) or not text.strip() or "\x00" in text:
+        if not isinstance(text, str):
+            raise AIError("AI_INVALID_CHUNKS")
+        # PDF 추출 결과에 섞이는 NUL 문자는 PostgreSQL TEXT에 저장할 수 없어 지운다. 벡터는 그대로 쓴다.
+        text = text.replace("\x00", "")
+        if not text.strip():
             raise AIError("AI_INVALID_CHUNKS")
         seen.add(index)
         chunks.append((index, text, to_vector(chunk.get("embedding"), dim)))
