@@ -1,3 +1,5 @@
+import os
+
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -7,7 +9,7 @@ MODEL_NAME = "sentence-transformers/paraphrase-MiniLM-L3-v2"
 def load_embedding_model() -> HuggingFaceEmbeddings:
     return HuggingFaceEmbeddings(
         model_name=MODEL_NAME,
-        model_kwargs={"device": "cpu"},
+        model_kwargs={"device": os.getenv("EMBEDDING_DEVICE", "cpu")},
     )
 
 
