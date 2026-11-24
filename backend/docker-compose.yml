@@ -33,5 +33,16 @@ services:
       db:
         condition: service_healthy
 
+  # 브라우저에서 DB를 보는 관리 도구다. 로그인 서버 이름은 db다.
+  adminer:
+    image: adminer:4.8.1-standalone
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   db-data:

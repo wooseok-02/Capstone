@@ -53,7 +53,7 @@ backend/
 │   └── 001_initial.sql  # 초기 DB 스키마
 ├── .env.example         # 환경 변수 예시
 ├── Dockerfile           # API 서버 이미지
-├── docker-compose.yml   # 로컬용 API + PostgreSQL 구성
+├── docker-compose.yml   # 로컬용 API + PostgreSQL + Adminer 구성
 └── requirements.txt
 ```
 
@@ -176,6 +176,7 @@ docker compose up --build
 | --- | --- | --- |
 | `api` | `http://localhost:8000` | FastAPI 서버 |
 | `db` | `127.0.0.1:5432` | PostgreSQL 17 (pgvector 포함) |
+| `adminer` | `http://localhost:8080` | 브라우저에서 DB를 보는 관리 도구 |
 
 compose 프로젝트 이름은 `knowledge-pet`으로 고정되어 있어, 컨테이너는 `knowledge-pet-api-1`, `knowledge-pet-db-1`로 만들어집니다. 다른 프로젝트의 `backend` 폴더와 이름이 겹치지 않습니다.
 
@@ -183,6 +184,24 @@ compose 프로젝트 이름은 `knowledge-pet`으로 고정되어 있어, 컨테
 - **스키마:** `sql/001_initial.sql`은 DB 볼륨이 **처음 만들어질 때만** 자동 실행됩니다.
 - **포트 충돌:** PC에 이미 PostgreSQL이 `5432`에서 실행 중이면 `db` 컨테이너가 켜지지 않습니다. 기존 PostgreSQL을 끄고 다시 실행하세요.
 - **코드 변경:** 코드를 고친 뒤에는 `docker compose up --build`로 이미지를 다시 만들어야 반영됩니다.
+
+#### DB를 화면으로 보기
+
+`http://localhost:8080`을 열고 아래 값으로 로그인하면 테이블 목록과 데이터를 클릭해서 볼 수 있습니다. 왼쪽 메뉴에서 테이블 이름 옆의 **선택**을 누르면 행이 표시되고, **SQL 명령**에서 직접 쿼리를 실행할 수 있습니다.
+
+| 항목 | 값 |
+| --- | --- |
+| 데이터베이스 형식 | PostgreSQL |
+| 서버 | `db` |
+| 사용자이름 | `pet` (`POSTGRES_USER`) |
+| 비밀번호 | `local-dev-password` (`POSTGRES_PASSWORD`) |
+| 데이터베이스 | `knowledge_pet` (`POSTGRES_DB`) |
+
+괄호 안의 환경 변수를 `.env`에 지정했다면 그 값을 사용합니다. 서버 칸에는 `localhost`가 아니라 compose 서비스 이름인 `db`를 입력해야 합니다. Adminer에서 데이터를 수정하면 실제 DB가 바뀌므로 조회 용도로 쓰는 것을 권장합니다.
+
+DBeaver 같은 데스크톱 DB 도구를 쓴다면 호스트 `127.0.0.1`, 포트 `5432`에 같은 계정으로 접속하면 됩니다.
+
+#### 자주 쓰는 명령
 
 자주 쓰는 명령은 다음과 같습니다.
 
@@ -307,7 +326,8 @@ psql -h 127.0.0.1 -U pet -d knowledge_pet -v ON_ERROR_STOP=1 -f backend/sql/001_
 | [docs/API.md](docs/API.md) | 기기·폴더 API 명세 (요청, 응답, 오류, 경로 검증 규칙) |
 | [sql/001_initial.sql](sql/001_initial.sql) | 전체 DB 스키마 |
 | [.env.example](.env.example) | 필요한 환경 변수 목록 |
-| [docker-compose.yml](docker-compose.yml) | 로컬 Docker 구성 (API + PostgreSQL) |
+| [docker-compose.yml](docker-compose.yml) | 로컬 Docker 구성 (API + PostgreSQL + Adminer) |
+| `http://localhost:8080` | 서버 실행 중 DB를 화면으로 보는 Adminer |
 | `http://localhost:8000/docs` | 서버 실행 중 확인하는 Swagger 문서 |
 
 아키텍처·워크플로, 백엔드 ↔ AI 연동 설계는 팀 노션 문서에 있습니다.
