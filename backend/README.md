@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](#로컬-실행)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](#로컬-실행)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-DB-4169E1?logo=postgresql&logoColor=white)](sql/001_initial.sql)
-[![Cloudflare R2](https://img.shields.io/badge/Cloudflare%20R2-예정-F38020?logo=cloudflare&logoColor=white)](#기술-스택)
+[![Cloudflare R2](https://img.shields.io/badge/Cloudflare-R2-F38020?logo=cloudflare&logoColor=white)](#기술-스택)
 [![Electron](https://img.shields.io/badge/Client-Electron-47848F?logo=electron&logoColor=white)](#electron-앱-연결)
 
 <br>
@@ -116,7 +116,7 @@ Docker를 쓰면 PostgreSQL 설치와 스키마 실행이 자동으로 처리됩
 | --- | --- |
 | 백엔드 | FastAPI · Python 3.11+ · PyJWT · httpx |
 | DB | PostgreSQL (psycopg 3) · pgvector 예정 |
-| 원본 저장 | Cloudflare R2 비공개 버킷 (예정) |
+| 원본 저장 | Cloudflare R2 비공개 버킷 |
 | 인증 | 소셜 OAuth · Access/Refresh Token · Electron 루프백 + PKCE 방식 코드 교환 |
 | 문서 처리 | LangChain · Unstructured · 외부 임베딩 API (AI 담당) |
 | 데스크톱 | Electron · React · TypeScript (프론트엔드 담당) |
