@@ -235,7 +235,7 @@ def process_version(settings: Settings, document_version_id: UUID) -> None:
 
 LATEST_VERSION = """
     JOIN LATERAL (
-        SELECT version_no AS latest_version, status FROM document_versions v
+        SELECT version_no AS latest_version, status, error_code FROM document_versions v
         WHERE v.document_id = d.document_id ORDER BY version_no DESC LIMIT 1
     ) latest ON TRUE
 """
@@ -245,7 +245,7 @@ def list_folder_documents(db, user_id: int, folder_id: UUID, limit: int, offset:
     get_owned_folder(db, user_id, folder_id)
     return db.execute(f"""
         SELECT d.document_id, d.folder_id, d.relative_path, d.file_name, d.created_at,
-               latest.latest_version, latest.status
+               latest.latest_version, latest.status, latest.error_code
         FROM documents d {LATEST_VERSION}
         WHERE d.folder_id = %s
         ORDER BY d.relative_path COLLATE "C"
@@ -257,7 +257,7 @@ def get_document_detail(db, user_id: int, document_id: UUID) -> dict:
     get_owned_document(db, user_id, document_id)
     document = db.execute(f"""
         SELECT d.document_id, d.folder_id, d.relative_path, d.file_name, d.created_at,
-               latest.latest_version, latest.status
+               latest.latest_version, latest.status, latest.error_code
         FROM documents d {LATEST_VERSION}
         WHERE d.document_id = %s
         """, (document_id,)).fetchone()

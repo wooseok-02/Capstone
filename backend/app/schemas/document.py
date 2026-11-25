@@ -91,6 +91,7 @@ class DocumentSummary(BaseModel):
     file_name: str = Field(description="파일 이름입니다.")
     latest_version: int = Field(description="가장 최근 버전 번호입니다.")
     status: str = Field(description="가장 최근 버전의 상태입니다.")
+    error_code: str | None = Field(description="가장 최근 버전이 실패했을 때 원인 코드입니다. 실패가 아니면 null입니다.")
     created_at: datetime = Field(description="문서를 등록한 시각입니다.")
 
 

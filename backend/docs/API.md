@@ -241,7 +241,7 @@ Electron은 파일 경로가 제외 경로와 같거나 `제외 경로/`로 시�
 
 `GET /api/v1/folders/{folder_id}/documents?limit=100&offset=0`
 
-폴더의 문서를 경로의 문자 코드 순으로 반환합니다. `limit`은 1~500(기본 100), `offset`은 0 이상입니다. `status`는 최신 버전의 상태입니다.
+폴더의 문서를 경로의 문자 코드 순으로 반환합니다. `limit`은 1~500(기본 100), `offset`은 0 이상입니다. `status`와 `error_code`는 최신 버전의 값입니다. `error_code`는 실패(`upload_failed`, `processing_failed`)일 때만 값이 있고 나머지는 `null`입니다. 저장 결과 화면의 실패 목록에 씁니다.
 
 응답 `200`
 
@@ -256,6 +256,7 @@ Electron은 파일 경로가 제외 경로와 같거나 `제외 경로/`로 시�
       "file_name": "프로세스.md",
       "latest_version": 1,
       "status": "ready",
+      "error_code": null,
       "created_at": "2026-11-24T06:00:00Z"
     }
   ]
@@ -370,6 +371,7 @@ R2 업로드·다운로드 URL은 응답으로만 주고 DB나 로그에 남기�
   "file_name": "프로세스.md",
   "latest_version": 1,
   "status": "ready",
+  "error_code": null,
   "created_at": "2026-11-24T06:00:00Z",
   "versions": [
     {
