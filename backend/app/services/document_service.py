@@ -124,6 +124,23 @@ def get_owned_document(db, user_id: int, document_id: UUID) -> dict:
     return document
 
 
+def delete_document(db, settings: Settings, user_id: int, document_id: UUID) -> None:
+    """문서와 모든 버전·청크·위치를 지우고 R2 원본도 지운다.
+
+    파일 삭제·이동·이름 변경은 모두 기존 문서 삭제로 처리한다(팀 결정 2026-11-25).
+    이동·이름 변경된 파일은 앱이 새 경로로 다시 등록하면 새 문서가 된다.
+    """
+    storage.require_storage(settings)
+    get_owned_document(db, user_id, document_id)
+    # 같은 문서의 등록·삭제 요청이 겹치지 않도록 문서 행을 잠근다.
+    db.execute("SELECT document_id FROM documents WHERE document_id = %s FOR UPDATE", (document_id,))
+    # R2를 먼저 지운다. 실패하면 예외로 DB 삭제도 롤백되고, 다시 요청하면 남은 객체부터 이어서 지운다.
+    # 키는 `{user_id}/{document_id}/v{n}.ext` 형식이라 이 접두사 아래가 이 문서의 원본 전부다.
+    storage.delete_prefix(settings, f"{user_id}/{document_id}/")
+    # document_versions, chunks, document_locations는 ON DELETE CASCADE로 함께 지워진다.
+    db.execute("DELETE FROM documents WHERE document_id = %s", (document_id,))
+
+
 def _owned_version(db, user_id: int, document_id: UUID, version_no: int, lock: bool = False) -> dict:
     get_owned_document(db, user_id, document_id)
     query = """

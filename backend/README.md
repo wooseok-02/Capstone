@@ -162,6 +162,7 @@ Docker를 쓰면 PostgreSQL 설치와 스키마 실행이 자동으로 처리됩
 | `POST /api/v1/search` | 검색어와 의미가 가까운 청크를 찾습니다. |
 | `GET`·`PUT /api/v1/documents/{document_id}/locations/{device_id}` | 기기별 문서 경로를 조회·갱신합니다. |
 | `POST /api/v1/documents/{document_id}/download-url` | 원본을 받을 R2 다운로드 URL을 발급합니다. |
+| `DELETE /api/v1/documents/{document_id}` | 문서와 버전·청크·경로, R2 원본을 모두 지웁니다. 파일 삭제·이동·이름 변경 시 호출합니다. |
 
 ---
 
