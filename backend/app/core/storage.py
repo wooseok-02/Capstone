@@ -1,4 +1,4 @@
-"""Cloudflare R2(S3 호환) 서명 URL 발급과 객체 확인.
+"""Cloudflare R2(S3 호환) 서명 URL 발급, 객체 확인과 삭제.
 
 서명 URL은 응답으로만 돌려주고 DB나 로그에 남기지 않는다.
 """
@@ -63,3 +63,23 @@ def object_size(settings: Settings, object_key: str) -> int | None:
             return None
         raise HTTPException(502, "파일 저장소에 연결하지 못했습니다.") from None
     return int(head["ContentLength"])
+
+
+def delete_prefix(settings: Settings, prefix: str) -> int:
+    """prefix 아래 객체를 모두 지우고 지운 개수를 돌려준다. 없는 객체는 실패로 보지 않는다."""
+    if not prefix.endswith("/"):
+        raise ValueError("prefix는 `/`로 끝나야 합니다.")
+    s3 = client(settings)
+    deleted = 0
+    try:
+        for page in s3.get_paginator("list_objects_v2").paginate(Bucket=settings.r2_bucket, Prefix=prefix):
+            keys = [{"Key": item["Key"]} for item in page.get("Contents", [])]
+            if not keys:
+                continue
+            result = s3.delete_objects(Bucket=settings.r2_bucket, Delete={"Objects": keys, "Quiet": True})
+            if result.get("Errors"):
+                raise HTTPException(502, "파일 저장소에서 원본을 지우지 못했습니다.")
+            deleted += len(keys)
+    except ClientError:
+        raise HTTPException(502, "파일 저장소에 연결하지 못했습니다.") from None
+    return deleted

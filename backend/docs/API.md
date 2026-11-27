@@ -55,6 +55,7 @@
 | 기기별 문서 경로 갱신 | `PUT` | `/api/v1/documents/{document_id}/locations/{device_id}` | `200` |
 | 다운로드 URL | `POST` | `/api/v1/documents/{document_id}/download-url` | `200` |
 | 원본 다운로드 | `GET` | 응답의 `download_url` (R2 직접) | `200` |
+| 문서 삭제 | `DELETE` | `/api/v1/documents/{document_id}` | `204` |
 
 ## 기기
 
@@ -241,7 +242,7 @@ Electron은 파일 경로가 제외 경로와 같거나 `제외 경로/`로 시�
 
 `GET /api/v1/folders/{folder_id}/documents?limit=100&offset=0`
 
-폴더의 문서를 경로의 문자 코드 순으로 반환합니다. `limit`은 1~500(기본 100), `offset`은 0 이상입니다. `status`는 최신 버전의 상태입니다.
+폴더의 문서를 경로의 문자 코드 순으로 반환합니다. `limit`은 1~500(기본 100), `offset`은 0 이상입니다. `status`와 `error_code`는 최신 버전의 값입니다. `error_code`는 실패(`upload_failed`, `processing_failed`)일 때만 값이 있고 나머지는 `null`입니다. 저장 결과 화면의 실패 목록에 씁니다.
 
 응답 `200`
 
@@ -256,6 +257,7 @@ Electron은 파일 경로가 제외 경로와 같거나 `제외 경로/`로 시�
       "file_name": "프로세스.md",
       "latest_version": 1,
       "status": "ready",
+      "error_code": null,
       "created_at": "2026-11-24T06:00:00Z"
     }
   ]
@@ -370,6 +372,7 @@ R2 업로드·다운로드 URL은 응답으로만 주고 DB나 로그에 남기�
   "file_name": "프로세스.md",
   "latest_version": 1,
   "status": "ready",
+  "error_code": null,
   "created_at": "2026-11-24T06:00:00Z",
   "versions": [
     {
@@ -482,6 +485,26 @@ R2 업로드·다운로드 URL은 응답으로만 주고 DB나 로그에 남기�
 
 Electron이 `GET {download_url}`로 받아 저장하고 해시를 확인한 뒤 경로를 갱신합니다.
 
+### 문서 삭제
+
+`DELETE /api/v1/documents/{document_id}`
+
+문서와 모든 버전, 청크, 기기별 문서 경로를 DB에서 지우고 R2 원본도 지운 뒤 `204`를 반환합니다. 본문은 없습니다. 되돌릴 수 없습니다.
+
+로컬 파일의 삭제·이동·이름 변경은 모두 **다른 문서**로 봅니다(팀 결정, 2026-11-25).
+
+| 로컬 변화 | Electron 처리 |
+| --- | --- |
+| 삭제 | 기존 `document_id`로 `DELETE` |
+| 이동·이름 변경 | 기존 `document_id`로 `DELETE` → 새 경로로 `POST /documents`부터 다시 업로드 (새 `document_id`, `version` 1) |
+
+- 기존 `document_id`는 `GET /folders/{folder_id}/documents`의 `relative_path`로 찾을 수 있습니다.
+- R2는 `{user_id}/{document_id}/` 아래 객체를 모두 지웁니다. 재업로드 중 남은 객체도 함께 정리됩니다.
+- R2 삭제가 실패하면 `502`이고 DB는 그대로입니다. 같은 요청을 다시 보내면 남은 객체부터 이어서 지웁니다.
+- 다른 계정의 문서나 이미 지운 문서는 `404`입니다.
+- 분석 중(`processing`)인 문서를 지우면 AI 결과는 저장되지 않고 버려집니다.
+- 삭제 후에도 이전에 발급된 `upload_url`(최대 30분)로 올리면 R2에 객체가 남을 수 있습니다. 삭제한 문서의 URL은 더 쓰지 않아야 합니다.
+
 ## 백엔드 ↔ AI 서버
 
 AI 서버는 백엔드만 호출하며 `Authorization: Bearer <AI_INTERNAL_TOKEN>`으로 인증합니다. 사용자 ID와 로컬 경로는 보내지 않습니다.
@@ -527,6 +550,6 @@ AI는 같은 HTTP 응답으로 `document_version_id`, `status`(`success`/`failed
 - 경로는 Unicode NFC로 맞춰 비교합니다. Windows 대소문자 구분 정책은 미정이며 현재는 대소문자를 구분합니다.
 - 백엔드 ↔ AI 동기/비동기 방식, 검색어 임베딩 형식, AI 서버 인증(내부 토큰)은 AI 담당과 확정해야 합니다. 문서 처리 엔드포인트는 `/upload`로 확인했습니다. 현재는 업로드 완료 응답 후 같은 서버에서 AI를 호출하므로, 처리 중 서버가 꺼지면 버전이 `processing`에 남습니다(작업 큐 도입 시 해결).
 - URL 유효 시간(업로드·다운로드 1800초, AI용 600초)과 업로드 크기 제한(100MB)은 임시 기본값이며 환경 변수로 바꿀 수 있습니다.
-- 멱등성 기준(최신 버전과 해시·크기 비교), 파일 이동·이름 변경·삭제 시 문서 처리는 팀 확정 전입니다.
+- 멱등성 기준(최신 버전과 해시·크기 비교)은 팀 확정 전입니다. 파일 삭제·이동·이름 변경은 다른 문서로 보고 기존 문서를 삭제합니다(`DELETE /documents/{document_id}`).
 - 지원 파일 형식은 미정입니다. 현재 백엔드는 형식을 제한하지 않아 `.hwp`도 등록·업로드되고 분석 단계에서 실패합니다. 지원 목록이 정해지면 등록 단계에서 거부합니다.
 - 임베딩 차원이 정해지면 `chunks.embedding`을 `vector(N)`으로 고정하고 검색 인덱스(HNSW 등)를 추가합니다. 지금은 인덱스 없이 전체 비교합니다. AI 모델을 바꾸면 기존 청크는 새 모델로 다시 분석해야 검색됩니다.

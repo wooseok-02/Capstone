@@ -55,6 +55,21 @@ def get_document(document_id: UUID, user_id: CurrentUserId, settings: SettingsDe
         return document_service.get_document_detail(db, user_id, document_id)
 
 
+@router.delete(
+    "/{document_id}", status_code=204,
+    summary="문서 삭제",
+    description=(
+        "문서와 모든 버전·청크·기기별 위치를 지우고 R2 원본도 지웁니다. "
+        "로컬에서 파일이 삭제·이동·이름 변경되면 호출합니다. 이동·이름 변경은 새 경로로 다시 등록하면 새 문서가 됩니다."
+    ),
+    response_description="삭제했습니다. 본문은 없습니다.",
+)
+def delete_document(document_id: UUID, user_id: CurrentUserId, settings: SettingsDependency):
+    with connect(settings) as db:
+        document_service.delete_document(db, settings, user_id, document_id)
+    return Response(status_code=204, headers=NO_STORE)
+
+
 @router.post(
     "/{document_id}/upload-complete", response_model=UploadCompleteResponse,
     summary="업로드 완료 통지",
