@@ -138,4 +138,34 @@ CREATE TABLE IF NOT EXISTS chunks (
     UNIQUE (document_version_id, chunk_index)
 );
 
+CREATE TABLE IF NOT EXISTS notifications (
+    notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_document_version_id UUID NOT NULL
+        REFERENCES document_versions(document_version_id) ON DELETE CASCADE,
+    source_device_id UUID REFERENCES devices(device_id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMPTZ,
+    UNIQUE (source_document_version_id)
+);
+
+CREATE INDEX IF NOT EXISTS notifications_user_created_at_idx
+    ON notifications (user_id, created_at DESC, notification_id DESC);
+
+CREATE TABLE IF NOT EXISTS notification_items (
+    notification_item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    notification_id UUID NOT NULL REFERENCES notifications(notification_id) ON DELETE CASCADE,
+    related_document_version_id UUID NOT NULL
+        REFERENCES document_versions(document_version_id) ON DELETE CASCADE,
+    connection_reason TEXT NOT NULL,
+    source_excerpt TEXT,
+    related_excerpt TEXT,
+    UNIQUE (notification_id, related_document_version_id)
+);
+
+CREATE INDEX IF NOT EXISTS notification_items_related_version_idx
+    ON notification_items (related_document_version_id);
+
 COMMIT;
