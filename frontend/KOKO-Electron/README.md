@@ -1,15 +1,40 @@
-# KOKO 코코 — Electron 데스크톱 펫 + 실제 소셜 OAuth API 연동 (v0.2.0)
+# KOKO v0.5.0 — 자동 감지·재탐색·안전 동기화 업데이트
 
-사용자가 선택한 **코코 앱 심볼**, **1번 고양이 펫**을 사용한 Electron 앱입니다. 고양이를 클릭하면 회원가입/로그인 화면이 열리며, 팀의 `API_SPEC.csv` 명세에 맞춰 소셜 인증을 진행합니다.
+**현재 버전은 v0.5.0입니다.** 자세한 실행/테스트 안내는 [`README_V05_KO.md`](README_V05_KO.md)를 우선 확인하세요. 아래 내용은 v0.3~v0.4 시점의 개발 이력을 포함하므로, 최신 기능 범위와 충돌할 경우 v0.5 안내가 우선합니다.
 
-> **중요:** 첨부된 API 명세에는 서버의 **BASE URL이 없습니다.** 실제 로그인 테스트를 하려면 백엔드 주소와 서버에 등록된 소셜 OAuth 제공자 설정이 필요합니다. 코드에는 가상의 서버 URL이나 가짜 로그인 성공 로직이 포함되어 있지 않습니다. 모의 백엔드 통합 테스트만 통과했습니다.
+# KOKO v0.4.0 — 실제 API 연결 및 개발 시연 모드
 
-## 1. Windows에서 실행
+**실행 안내: [`README_LIVE_API_KO.md`](README_LIVE_API_KO.md)를 먼저 확인하세요.**
 
-1. Node.js LTS를 설치합니다. (PowerShell 또는 CMD: `node -v`, `npm -v`)
-2. ZIP을 풀어 **`package.json`이 보이는 `KOKO_Electron_OAuth_v1` 폴더**를 엽니다.
-3. 폴더 주소 표시줄에 `cmd`를 입력해 터미널을 엽니다.
-4. 아래 명령어를 차례대로 실행합니다.
+# 신규: KOKO 알림 종 아이콘 적용 (v0.3.3)
+
+자세한 내용은 `README_BELL_UPDATE.md`를 확인하세요.
+
+---
+
+## 새 기능: 백엔드 없이 사용하는 UI 시연 모드 (v0.3.2)
+
+`npm install` 이후 **`npm run demo`** 또는 **`RUN_DEMO.cmd`**를 실행하세요. 코코 펫을 클릭하면 로그인 없이 메인 작업실이 열립니다. 상단에 "개발용 시연" 배너가 표시됩니다. 실제 로그인, 파일 업로드, AI 분석은 실행되지 않습니다. **실제 백엔드 연결은 `npm start`**를 사용하세요. 자세한 내용은 `docs/DEMO_MODE_GUIDE.md` 및 `START_HERE_DEMO.txt`를 확인하세요.
+
+---
+
+# 코코 KOKO — Electron 작업실 UI + 문서 API 연동 준비 (v0.3.1)
+
+기존 데스크톱 코코 펫·OAuth 로그인 구현을 보존하고, 1440×900 크기의 작업실에 다음 UI를 통합했습니다.
+
+1. 메인 작업실: 검색, 연결 폴더, 분석 상태, 최근 저장 문서, 관련 기록, 조용한 알림
+2. 폴더 선택 → 트리 확인 → 제외(X)·복구 → 업로드 시작
+3. 파일 업로드 진행 → 서버 AI 분석 상태 조회 → 결과 및 실패 상세
+4. 알림 내역: 종 아이콘, 읽음 표시, 분류 필터, 조용한 알림
+5. 알림 상세: 연결 이유, 근거 구절, 바로 가기·다운받기 버튼 (기능 미연결 안내)
+
+색상 기준: #3368A0, #66A3BF, #C8DFDB, #F2EFE7. 현재 기본 크기 1440×900, 최소 800×600, 최대 1920×1080.
+
+## 실행 (Windows)
+
+1. 이 ZIP의 압축을 풉니다.
+2. `KOKO_Desktop_UI_v3` 폴더의 `package.json`이 보이는 위치에서 CMD를 엽니다.
+3. 다음 명령어를 실행합니다.
 
 ```bat
 npm install
@@ -17,116 +42,77 @@ npm test
 npm start
 ```
 
-또는 프로젝트 폴더의 `실행하기.cmd`를 실행하면 의존성이 없을 때 설치 후 시작합니다.
+4. 바탕화면 오른쪽 아래의 코코 고양이를 **왼쪽 클릭**합니다. 미로그인 상태면 소셜 로그인 화면이 열리고, 로그인되어 있으면 작업실이 바로 열립니다.
+5. 처음 Google/Naver/Kakao 로그인을 성공하면 **계정 화면을 거치지 않고 작업실(1440×900)이 자동으로 열립니다.** 이후 다시 펫을 클릭해도 작업실이 열립니다. 자동 로그인 복원 시에는 앱 시작 때 창을 강제로 띄우지 않고 펫 클릭을 기다립니다.
+6. 별도 계정 확인/로그아웃은 펫 **오른쪽 클릭 → 로그인 및 계정 관리**에서 할 수 있습니다. 로그아웃하면 열린 작업실은 닫힙니다.
+7. 설치 프로그램이 필요하면 Windows에서 `npm run dist:win`을 실행합니다. 이 ZIP에는 설치형 EXE는 포함되지 않습니다.
 
-5. 바탕화면 오른쪽 아래에 나타나는 **1번 고양이 코코**를 클릭합니다.
-6. 로그인 화면의 **백엔드 서버** 칸에 팀에서 받은 API BASE URL을 입력하고 **저장**을 누릅니다. 예: `https://api.team-example.com` (이는 형식 예시일 뿐, 실제 주소가 아닙니다.)
-7. 처음 시작하면 **회원가입** UI가 나오며, 이미 OAuth 로그인을 성공한 이 컴퓨터에서는 **로그인** UI가 나옵니다.
-8. Google부터 시도합니다. 버튼을 누르면 Windows 기본 브라우저가 열립니다. 인증을 마치면 KOKO로 자동 복귀해 `/me` 회원 정보를 표시합니다.
-9. 같은 구조로 네이버와 카카오도 테스트합니다.
+**간단한 시연:** 별도 제공된 `KOKO_UI_v3_브라우저_시연.html`을 브라우저로 열면 파일 선택 없이 화면 전환·제외/복구·시연 저장·알림 동작을 체험할 수 있습니다.
 
-**주의:** `file://` 또는 임의 HTTP 사이트를 백엔드로 입력할 수 없습니다. HTTPS만 허용하며 예외로 개발용 `http://localhost:PORT` / `http://127.0.0.1:PORT`를 지원합니다.
+## 실제 API 연결 순서
 
-## 2. 백엔드 팀이 제공해야 하는 정보
+- 로그인 창에서 팀 백엔드의 정확한 BASE URL(HTTPS 또는 로컬 개발용 HTTP)을 저장하고 소셜 OAuth를 성공시킵니다.
+- 작업실 → 파일 감지 → **＋ 폴더 선택**에서 실제 로컬 폴더를 선택합니다.
+- 전체 트리를 확인하고 × 제외/↶ 복구를 적용합니다. 5,000개 이상이거나 깊이가 너무 큰 트리는 안전상 업로드하지 않습니다.
+- **저장 시작**을 선택하면 실제 원본이 R2에 업로드될 수 있다는 확인 팝업이 한 번 더 뜹니다. **승인해야만 전송합니다**.
+- Electron Main 프로세스에서 기기 등록 → 폴더 등록 → 제외 목록 저장 → 문서 SHA-256 등록 → R2 PUT → 업로드 완료 API를 호출합니다.
+- 문서 목록 API로 서버 상태를 조회합니다. AI 분석은 비동기이므로 '업로드 완료'와 '분석 완료'를 구분합니다. 완료 전에는 5초 간격으로 최대 5분 상태를 재조회합니다.
 
-- **필수:** API BASE URL (`https://...`)
-- 해당 서버에 정상 구현된 `GET /auth/{provider}/start`, `POST /auth/exchange`, `POST /auth/refresh`, `POST /auth/logout`, `GET /me`
-- 소셜 제공자 콘솔의 등록 정보(백엔드 설정), Google/Naver/Kakao 서버측 redirect URI
-- 서버에서 Electron 로그인 완료 시 반드시 아래처럼 돌아오는지 확인:
+## 연결 완료 / 아직 미연결
 
-```http
-HTTP/1.1 302 Found
-Location: http://127.0.0.1:<desktop_port>/oauth/callback?code=<ONE_TIME_CODE>
-```
+| 항목 | 상태 |
+|---|---|
+| Electron 고양이, 소셜 OAuth 코드 | 기존 구현 보존 (실제 팀 서버 확인 필요) |
+| Windows 폴더 선택 및 로컬 트리 | Electron IPC 연결 |
+| 제외/복구 및 파일 개수 | UI 구현 |
+| POST /api/v1/devices | 문서 API 구현, 첫 사용 시에만 기기 등록 (계정별 로컬 ID 저장) |
+| POST /api/v1/folders, PUT /exclusions | 문서 API 구현 |
+| POST /api/v1/documents, R2 PUT, /upload-complete | 문서 API 구현 및 모의 서버 테스트 통과 |
+| GET /folders/{id}/documents | 상태 조회 구현 및 모의 서버 테스트 통과 |
+| 실제 팀 백엔드 인증 및 파일 업로드 | **미검증** — BASE URL, OAuth 공급자 설정, 서버 계정 필요 |
+| 파일 변경 자동 감시 / 삭제·이동 동기화 | **미구현** — 별도 설계·정책 확정 필요 |
+| AI 연결 추천, 알림 조회 API | **명세 없음** — 알림과 관련 문서는 샘플 데이터 |
+| 바로 가기 / 원본 다운로드 | **명세 없음** — 버튼은 미연결 안내 |
+| 실제 정태구 담당자와 연동 테스트 | **미실시** — 테스트 체크리스트 전달 |
 
-- 실패 시 `error=access_denied` 또는 `error=login_failed` 전달
-- 웹 기본 인증 흐름과 Desktop 인증 흐름을 구분하여, Desktop에서는 원래 `code_verifier`로 PKCE 검증 후 교환하도록 구현
+## 보안 및 주의 사항
 
-**인증 후 회신은 127.0.0.1로만 합니다.** 사용자에게 고정 callback 포트나 제공자별 Client Secret을 전달할 필요가 없습니다.
+- 샘플 모드는 문서를 읽거나 서버에 전송하지 않습니다.
+- 실제 모드에서는 사용자가 직접 선택한 폴더만 읽으며, 사용자의 추가 확인 전에 업로드하지 않습니다.
+- 업로드 URL이 `null`이면 R2 업로드 및 완료 알림을 생략합니다.
+- 백엔드 API는 Bearer Access Token으로 호출하며, **R2 사전서명 PUT에는 Access Token을 보내지 않습니다**.
+- Access Token과 R2 서명 URL은 Renderer에 전달하지 않습니다. OAuth Refresh Token은 기존 safeStorage를 사용합니다.
+- 파일 하나당 최대 100MB. 보호 대상(.git, node_modules 등)은 기본 스캔에서 제외합니다.
+- 파일 내용은 클라우드 R2에 업로드되므로 사용자의 개인정보 및 민감 파일 취급 정책을 서비스 출시 전에 확정해야 합니다.
+- 업로드 실패 시 업로드/분석 완료로 표시하지 않도록 서버 상태를 사용합니다.
+- 현재 알림의 추천 근거와 최근 저장 문서 데이터는 **시연 데이터**입니다. 실제 API 연결로 오인하지 마세요.
 
-## 3. 인증 흐름 (첨부 API_SPEC.csv 반영)
-
-```text
-코코 고양이 클릭 → UI 버튼 Google 로그인
-    ↓
-64자 code_verifier 난수 생성 (CSPRNG)
-SHA256(code_verifier) → Base64URL(패딩 없음) → 43자 desktop_challenge
-    ↓
-127.0.0.1:0 에 서버 바인딩 → OS가 빈 임시 포트 지정
-    ↓
-Windows 기본 브라우저로 접속
-GET {BASE_URL}/auth/google/start?desktop_port=포트&desktop_challenge=챌린지
-    ↓
-백엔드 302 → Google 로그인 → 백엔드 /auth/google/callback
-    ↓
-백엔드 302 → http://127.0.0.1:임시포트/oauth/callback?code=ONE_TIME_CODE
-    ↓
-Electron에서 수신 후 로컬 HTTP 서버 즉시 종료
-POST /auth/exchange {code, code_verifier}
-    ↓
-받은 Access Token은 앱 메모리에 보관
-Refresh Token은 Electron safeStorage를 통해 Windows DPAPI로 보호하여 저장
-    ↓
-GET /me, Header Authorization: Bearer ACCESS_TOKEN
-    ↓
-코코 계정 화면에 provider/id/nickname/created_at 표시
-```
-
-- API의 `/auth/{provider}/start`는 **JSON API가 아닌 HTTP 302 브라우저 리다이렉트**입니다. `fetch()`로 로그인 URL을 받는 방식으로 구현하면 안 됩니다. 앱은 `shell.openExternal()`로 OS 기본 브라우저를 엽니다.
-- 코드는 **2분 동안 일회용**이므로 콜백 직후 즉시 `/auth/exchange`를 호출합니다.
-- `POST /auth/refresh` 호출 시 새 Access/Refresh Token을 **둘 다** 적용하고 저장합니다.
-- 앱 재시작 시 저장한 Refresh Token으로 자동 로그인을 시도합니다. 앱 사용 중 Access Token 만료 전에도 백그라운드 갱신합니다.
-- `POST /auth/logout`에 Refresh Token을 JSON으로 전달합니다. 서버 오류가 발생해도 사용자 기기의 로컬 토큰은 삭제합니다. 이 경우 서버 로그아웃을 확인하지 못했다고 안내합니다.
-- 인증 취소/실패/시간 초과 시 루프백 리스너를 닫고 로그인 화면의 상태 안내를 갱신합니다.
-
-## 4. 테스트
+## 테스트
 
 ```bat
 npm test
 ```
 
-테스트 내용: PKCE 검증값, 서버 주소 검증, 세 제공자의 요청 URL, localhost 콜백 검증, 실제 HTTP 302 흐름을 흉내 내는 백엔드와의 인증 코드 교환, `/me`, 재시작 후 Refresh Token 갱신/회전, 로그아웃, 인증 취소, 코드 만료, Refresh 실패, 암호화 저장 어댑터.
+18개 자동 테스트: 기존 OAuth 8개 + 문서 API 3개 + 로그인 상태별 펫 클릭 경로 7개.
 
-> **테스트 통과 = 팀 서버 인증 성공은 아닙니다.** 로컬 테스트는 실제 Google/Naver/Kakao 계정이나 팀 서버를 호출하지 않습니다.
+브라우저 UI 화면 전환, 제외→복구 28→27→28, 저장 시연 완료, 알림 읽음 3→2를 검사했습니다. 실제 Windows Electron 그래픽 UI와 팀 백엔드 서버 검증은 아직 필요합니다.
 
-## 5. 개발 및 보안 유의사항
+**정태구 담당자와 실제 검증할 내용:** `docs/FRONTEND_BACKEND_TEST_CHECKLIST.md` 참고.
 
-- **Windows 안전한 저장:** Electron `safeStorage`는 Windows DPAPI 기반 암호화를 사용합니다. 암호문은 사용자별 앱 데이터 디렉터리의 `koko-refresh-token.bin`에 저장됩니다. Access Token, OAuth verifier, one-time code는 파일이나 렌더러에 저장하지 않습니다. OS 안전 저장 사용 불가능 시 평문으로 내려가지 않고 로그인 오류로 처리합니다.
-- **루프백:** 서버는 IPv4 `127.0.0.1`의 자동 할당 포트에만 바인딩합니다. 정확한 `/oauth/callback` 경로를 검증하고 완료/취소/시간 초과 후 닫습니다.
-- **Electron:** `nodeIntegration=false`, `contextIsolation=true`, `sandbox=true`. Renderer에는 토큰을 넘기지 않고 최소한의 IPC만 노출합니다.
-- **실제 회원가입:** 백엔드 API 명세에 따르면 `/auth/exchange`가 첫 로그인 시 자동 가입합니다. Electron의 최초 회원가입 화면은 **표시용 진입 안내**일 뿐, 사용자 계정을 로컬에서 직접 생성하지 않습니다. 최초 로그인 성공 기록은 화면 분기용일 뿐 인증 판정에 사용하지 않습니다.
-- **약관 동의:** 팀에서 아직 확정되지 않았으므로 이번 OAuth 통합에서는 생략했습니다. 실제 출시 전에 개인정보 처리방침·수집/이용 동의에 관한 법적·제품 검토가 필요합니다.
-- **알 수 없는 에러:** 백엔드 응답 형식이나 실제 엔드포인트 구현이 다르다면 `docs/API_SPEC.csv`를 기준으로 백엔드 팀과 조정하세요.
-- **로그인 URL:** 소셜 제공자의 Client Secret은 앱에 포함하지 않습니다. 서버에서만 보관해야 합니다.
-- **소셜 제공자 로그인 버튼:** 공급자 브랜드 컬러는 유지합니다.
+## v0.3.1 변경점: 로그인 상태에 따른 펫 클릭 분기
 
-## 6. Windows 설치 프로그램 만들기
+- `renderer/pet.js`: 펫 왼쪽 클릭을 `openAuth()` 고정 호출 대신 `openEntry()`로 교체. 드래그는 기존처럼 창 이동만 수행합니다.
+- `preload.js`: `koko:open-entry` 안전한 IPC 브리지 추가.
+- `main.js`: 앱 준비와 자동 로그인 복원 완료 후 메인 프로세스에서 인증 상태를 확인합니다. 실제 사용자 정보와 메모리의 Access Token이 모두 있어야 작업실을 열고, 그렇지 않으면 로그인 창을 엽니다.
+- 새 OAuth 로그인 성공 시 계정 화면 대신 작업실을 자동으로 엽니다. 재실행 후 자동 로그인 성공은 창을 강제로 띄우지 않고 펫 클릭 시 작업실을 엽니다.
+- 세션 해제/갱신 실패 시 기존 작업실을 닫아 이전 화면이 남지 않도록 처리합니다.
+- 자동 테스트는 인증 창 분기 로직을 검사합니다. **실제 Google/Naver/Kakao 서버 연동과 Windows 창 클릭 동작은 팀 PC에서 직접 확인해야 합니다.**
 
-Windows 컴퓨터에서:
+### 수동 검증 체크리스트 (Windows)
 
-```bat
-npm install
-npm run dist:win
-```
-
-성공하면 `dist/`에 NSIS Windows 설치 파일이 생성됩니다. 설치 후 바탕화면 바로가기 **코코 KOKO**를 실행하면 펫이 표시됩니다. 이 ZIP에는 **실행 파일(.exe)이 아니라 소스 프로젝트**가 들어 있습니다. 코드 서명되지 않은 설치 파일은 Windows 보안 경고가 나타날 수 있습니다.
-
-## 7. 프로젝트 파일
-
-```text
-KOKO_Electron_OAuth_v1/
-├─ assets/                    사용자 앱 심볼(.png/.ico), 1번 고양이(.png)
-├─ renderer/                  데스크톱 펫, 회원가입·로그인·회원정보 화면
-├─ lib/oauth-utils.js        PKCE·API URL 검증·응답 검증
-├─ lib/loopback.js           127.0.0.1 임시 서버 및 콜백
-├─ lib/api-client.js         /auth/exchange, /auth/refresh, /auth/logout, /me
-├─ lib/token-store.js        OS 암호화 Refresh Token 저장
-├─ lib/auth-service.js       OAuth 전체 상태 관리·자동 갱신·로그아웃
-├─ docs/API_SPEC.csv         사용자가 첨부한 API 명세
-├─ docs/FRONTEND_API_GUIDE.md 프론트엔드/백엔드 연동 협업 가이드
-├─ test/oauth.test.js        테스트
-├─ main.js                   Electron 메인 프로세스
-├─ preload.js                최소 IPC 브리지
-├─ package.json
-└─ 실행하기.cmd
-```
+1. 첫 실행(토큰 없음): 펫 왼쪽 클릭 → 회원가입·로그인 창.
+2. Google 로그인 성공: 인증 완료 → 로그인 창 닫힘 → 작업실 자동 표시.
+3. 작업실 닫고 펫 클릭: 로그인 창을 거치지 않고 같은 작업실 표시.
+4. 앱 종료·재시작 후 자동 로그인 성공: 펫 클릭 시 작업실 표시.
+5. 펫 오른쪽 클릭 → 로그인 및 계정 관리 → 로그아웃: 작업실 닫힘, 이후 펫 클릭 시 로그인 창 표시.
+6. 로그인 취소·만료·서버 오류: 로그인 화면 유지, 인증되지 않은 작업실은 열리지 않음.

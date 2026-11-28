@@ -111,3 +111,5 @@ h1 { margin: 22px 0 15px; font-size: clamp(27px, 4vw, 37px); letter-spacing: -1.
 .account-buttons button:disabled { opacity: .5; }
 .profile-footnote { color: #708797; font-size: 12px; margin: 24px 0 0; line-height: 1.7; }
 @media(max-height: 730px) { .api-setup { margin-top: 12px; } .provider-list { margin-top: 14px; } .auth-feedback { margin-top: 12px; } .provider { height: 53px; } }
+
+.workspace-preview-button{background:#3368A0;color:white;border:1px solid #3368A0;border-radius:10px;padding:13px 22px;font-weight:750;font-size:15px;margin-top:18px;width:100%;cursor:pointer}

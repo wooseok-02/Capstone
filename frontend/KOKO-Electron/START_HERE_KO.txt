@@ -1,0 +1,15 @@
+KOKO v0.3.1 - ERR_FILE_NOT_FOUND 해결용 ZIP
+
+1. 이전에 압축을 풀었던 폴더에서 실행하지 마세요.
+2. 이 압축파일 안의 KOKO_WORK 폴더를 C:\Users\luffy 아래로 복사하세요.
+   결과 경로: C:\Users\luffy\KOKO_WORK\package.json
+   (사용자 이름이 다르면 자신의 사용자 폴더를 사용)
+3. 파일 탐색기에서 KOKO_WORK\renderer\pet.html 이 있는지 확인하세요.
+4. KOKO_WORK 폴더 주소창에 cmd를 입력한 뒤 다음을 실행하세요.
+   npm install
+   npm test
+   npm start
+
+문제 해결 이유: 기존 설치 경로에 % 같은 특수 문자 또는 잘못 인코딩된 문자열이 있으면 파일 URL 해석에 영향을 줄 수 있습니다.
+이 ZIP은 프로젝트 코드를 변경하지 않고 영문/숫자 이름으로 재포장한 것입니다.
+로그인을 실제로 진행하려면 팀의 백엔드 주소 및 OAuth 설정이 별도로 필요합니다.

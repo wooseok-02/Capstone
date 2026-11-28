@@ -1,14 +1,15 @@
 {
   "name": "koko-desktop-pet",
   "productName": "코코 KOKO",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "private": true,
-  "description": "KOKO Electron desktop pet with real OAuth loopback PKCE integration",
+  "description": "KOKO Electron pet + live FastAPI/R2 integration with offline UI demo",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "dist:win": "electron-builder --win nsis"
+    "dist:win": "electron-builder --win nsis",
+    "demo": "electron . --koko-ui-demo"
   },
   "devDependencies": {
     "electron": "45.4.1",

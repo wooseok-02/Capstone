@@ -35,7 +35,7 @@ pet.addEventListener('pointerup', (event) => {
   drag = null;
   pet.classList.remove('dragging');
   if (pet.hasPointerCapture(event.pointerId)) pet.releasePointerCapture(event.pointerId);
-  if (!moved) window.koko?.openAuth();
+  if (!moved) window.koko?.openEntry().catch(() => showMessage('창을 열지 못했어요. 다시 시도해 주세요.'));
 });
 
 pet.addEventListener('pointercancel', () => { drag = null; pet.classList.remove('dragging'); });

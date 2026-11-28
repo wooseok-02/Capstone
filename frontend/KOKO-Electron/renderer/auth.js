@@ -81,6 +81,7 @@ $('reload-profile').addEventListener('click', async () => {
   catch { /* failure state is announced via auth-state */ }
   finally { $('reload-profile').disabled = false; }
 });
+$('open-workspace').addEventListener('click', () => api.openWorkspace());
 $('logout').addEventListener('click', async () => {
   $('logout').disabled = true;
   try {
